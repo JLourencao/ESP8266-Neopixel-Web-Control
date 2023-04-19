@@ -1,17 +1,63 @@
 //bibliotecas
+#include <Adafruit_NeoPixel.h>
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+// neopixel
+#define leds 8
+#define pino D7
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(leds, pino, NEO_GRB + NEO_KHZ800);
+
+//
+
+//rainbow
+uint32_t Wheel(byte WheelPos);
+void rainbow() {
+  uint16_t i, j;
+
+  for (j = 0; j < 256; j++) {
+    for (i = 0; i < pixels.numPixels(); i++) {
+      pixels.setPixelColor(i, Wheel((i + j) & 255));
+    }
+    pixels.show();
+    delay(20);
+  }
+} 
+
+uint32_t Wheel(byte WheelPos) {
+  if (WheelPos < 85) {
+    return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if (WheelPos < 170) {
+    WheelPos -= 85;
+    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+    WheelPos -= 170;
+    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+}
+
+//desativar rainbow
+
+void handle_pixelsclear() {
+  for (int i = 0; i < pixels.numPixels(); i++) {
+    pixels.setPixelColor(i, 0); // Define a cor de todos os pixels para preto
+  }
+  pixels.show(); // Mostra as cores dos pixels atualizadas
+}
+
 
 //wifi config
-const char* ssid = "IoT"; 
-const char* password = "Techno123";  
+const char* ssid = "deathsdance"; 
+const char* password = "12345678";  
 
 //handles
 void handle_OnConnect();
 void handle_ledon();
 void handle_ledoff();
+void handle_rainbowon();
+void handle_rainbowoff();
 void handle_NotFound();
+
 
 //string/porta
 String SendHTML(uint8_t led);
@@ -20,9 +66,11 @@ ESP8266WebServer server(80);
 //estados leds
 bool LEDstatus = LOW;
 bool LEDstatus1 = LOW;
+bool rainbowst = false;
 
 //setup
 void setup() {
+  pixels.begin();
   Serial.begin(115200); 
   pinMode(D2, OUTPUT); 
   pinMode(LED_BUILTIN, OUTPUT);
@@ -42,6 +90,8 @@ void setup() {
   server.on("/", handle_OnConnect);
   server.on("/ledon", handle_ledon);
   server.on("/ledoff", handle_ledoff);
+  server.on("/rainbowon", handle_rainbowon);
+  server.on("/rainbowoff", handle_rainbowoff);
   server.onNotFound(handle_NotFound);
   server.begin();
   Serial.println("Servidor HTTP iniciado!");
@@ -50,6 +100,10 @@ void setup() {
 //loop
 void loop() {
   server.handleClient(); 
+ if (rainbowst)
+  digitalWrite(D7, HIGH);
+ else 
+    digitalWrite(D7, LOW); // Limpa todos os pixels
   if (LEDstatus)
     digitalWrite(D2, HIGH);  
   else
@@ -64,6 +118,15 @@ void handle_OnConnect() {
   LEDstatus1 = HIGH;
   server.send(200, "text/html", SendHTML(false));
 }
+void handle_rainbowon(){
+  rainbow();
+  server.send(200, "text/html", SendHTML(rainbowst));
+}
+void handle_rainbowoff(){
+  handle_pixelsclear();
+  server.send(200, "text/html", SendHTML(rainbowst));
+}
+
 void handle_ledon() {
   LEDstatus = HIGH;
   LEDstatus1 = LOW;
@@ -72,7 +135,7 @@ void handle_ledon() {
 void handle_ledoff() {
   LEDstatus = LOW;
   LEDstatus1 = HIGH;
-  server.send(200, "text/html", SendHTML(false));
+  server.send(200, "text/html", SendHTML(LEDstatus));
 }
 void handle_NotFound() {
   server.send(404, "text/plain", "Not found");
@@ -80,7 +143,7 @@ void handle_NotFound() {
 ///HTMLCSS 
 String SendHTML(uint8_t led) {
   const char css[] = R"=====(
-    <!DOCTYPE html>
+<!DOCTYPE html>
     <html>
       <head>
         <meta charset="UTF-8">
@@ -168,6 +231,13 @@ String SendHTML(uint8_t led) {
         <div class="acoes">
           <a href="/ledon" class="ligar">Ligar</a>
           <a href="/ledoff" class="desligar">Desligar</a>
+        </div>
+        <div class="item-head">
+            <div class="titulo">Rainbow</div>
+        </div>
+        <div class="acoes">
+          <a href="/rainbowon" class="ligar">Ligar</a>
+          <a href="/rainbowoff" class="desligar">Desligar</a>
         </div>
     </section>
     <footer>

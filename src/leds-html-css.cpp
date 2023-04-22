@@ -5,14 +5,46 @@
 #include <ESP8266WebServer.h>
 
 // neopixel
-
 #define leds 8
 #define pino D7
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(leds, pino, NEO_GRB + NEO_KHZ800);
-//
 
+//wifi config
+const char* ssid = "deathsdance"; 
+const char* password = "12345678";  
 //Rainbow Fixo
 
+//Rainbow automático
+bool rainbowst = LOW;
+uint32_t Wheel(byte WheelPos);
+void rainbow() {
+  uint16_t i, j;
+
+  if (rainbowst) {
+    for (j = 0; j < 256; j++) {
+      for (i = 0; i < pixels.numPixels(); i++) {
+        pixels.setPixelColor(i, Wheel((i + j) & 255));
+      }
+      pixels.show();
+      delay(20);
+    }
+  }
+}
+
+uint32_t Wheel(byte WheelPos) {
+  if (WheelPos < 85) {
+    return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if (WheelPos < 170) {
+    WheelPos -= 85;
+    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+    WheelPos -= 170;
+    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+}
+
+//fixo 
+bool rainbowslc = LOW;
 void colorsrainbow() {
   for(int i=0; i<leds; i++) {
     int r = 0, g = 0, b = 0;
@@ -42,33 +74,6 @@ void colorsrainbow() {
   pixels.show();
 }
 
-//Rainbow automático
-
-uint32_t Wheel(byte WheelPos);
-void rainbow() {
-  uint16_t i, j;
-
-  for (j = 0; j < 256; j++) {
-    for (i = 0; i < pixels.numPixels(); i++) {
-      pixels.setPixelColor(i, Wheel((i + j) & 255));
-    }
-    pixels.show();
-    delay(20);
-  }
-} 
-
-uint32_t Wheel(byte WheelPos) {
-  if (WheelPos < 85) {
-    return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-  } else if (WheelPos < 170) {
-    WheelPos -= 85;
-    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  } else {
-    WheelPos -= 170;
-    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-}
-
 //desativar rainbow
 
 void handle_pixelsclear() {
@@ -78,10 +83,6 @@ void handle_pixelsclear() {
   pixels.show(); // Mostra as cores dos pixels atualizadas
 }
 
-
-//wifi config
-const char* ssid = "deathsdance"; 
-const char* password = "12345678";  
 
 //handles
 void handle_OnConnect();
@@ -100,8 +101,6 @@ ESP8266WebServer server(80);
 //estados leds
 bool LEDstatus = LOW;
 bool LEDstatus1 = LOW;
-bool rainbowst = false;
-bool rainbowslc = false;
 
 //setup
 void setup() {
@@ -136,10 +135,8 @@ void setup() {
 //loop
 void loop() {
   server.handleClient();
- if (rainbowst)
-  digitalWrite(D7, HIGH);
- else 
-    digitalWrite(D7, LOW); // Limpa todos os pixels
+  if (rainbowst)
+    rainbow();
   if (LEDstatus)
     digitalWrite(D2, HIGH);  
   else
@@ -149,22 +146,25 @@ void loop() {
   else
     digitalWrite(LED_BUILTIN, LOW);
 }
+
 void handle_OnConnect() {
   LEDstatus = LOW;
   LEDstatus1 = HIGH;
+  rainbowst = true;
   server.send(200, "text/html", SendHTML(false));
 }
 void handle_rainbowselect(){
   colorsrainbow();
-  server.send(200, "text/html", SendHTML(rainbowslc));
+  server.send(200, "text/html", SendHTML(rainbowst));
 }
 void handle_rainbowon(){
-  rainbow();
-  server.send(200, "text/html", SendHTML(rainbowst));
+  rainbowst = true;
+  server.send(200, "text/html", SendHTML(false));
 }
 void handle_rainbowoff(){
+  rainbowst = false;
   handle_pixelsclear();
-  server.send(200, "text/html", SendHTML(rainbowst));
+  server.send(200, "text/html", SendHTML(false));
 }
 
 void handle_ledon() {

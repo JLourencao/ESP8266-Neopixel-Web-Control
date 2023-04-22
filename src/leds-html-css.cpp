@@ -3,14 +3,47 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+
 // neopixel
+
 #define leds 8
 #define pino D7
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(leds, pino, NEO_GRB + NEO_KHZ800);
-
 //
 
-//rainbow
+//Rainbow Fixo
+
+void colorsrainbow() {
+  for(int i=0; i<leds; i++) {
+    int r = 0, g = 0, b = 0;
+    float h = (float)i/leds;
+    float x = 1 - abs(fmod(h*6, 2) - 1);
+    if(h < 1.0/6) {
+      r = 255;
+      g = 255 * x;
+    } else if(h < 2.0/6) {
+      r = 255 * x;
+      g = 255;
+    } else if(h < 3.0/6) {
+      g = 255;
+      b = 255 * x;
+    } else if(h < 4.0/6) {
+      g = 255 * x;
+      b = 255;
+    } else if(h < 5.0/6) {
+      r = 255 * x;
+      b = 255;
+    } else {
+      r = 255;
+      b = 255 * x;
+    }
+    pixels.setPixelColor(i, pixels.Color(r,g,b));
+  }
+  pixels.show();
+}
+
+//Rainbow automático
+
 uint32_t Wheel(byte WheelPos);
 void rainbow() {
   uint16_t i, j;
@@ -56,6 +89,7 @@ void handle_ledon();
 void handle_ledoff();
 void handle_rainbowon();
 void handle_rainbowoff();
+void handle_rainbowselect();
 void handle_NotFound();
 
 
@@ -67,6 +101,7 @@ ESP8266WebServer server(80);
 bool LEDstatus = LOW;
 bool LEDstatus1 = LOW;
 bool rainbowst = false;
+bool rainbowslc = false;
 
 //setup
 void setup() {
@@ -92,6 +127,7 @@ void setup() {
   server.on("/ledoff", handle_ledoff);
   server.on("/rainbowon", handle_rainbowon);
   server.on("/rainbowoff", handle_rainbowoff);
+  server.on("/rainbowselect", handle_rainbowselect);
   server.onNotFound(handle_NotFound);
   server.begin();
   Serial.println("Servidor HTTP iniciado!");
@@ -99,7 +135,7 @@ void setup() {
 
 //loop
 void loop() {
-  server.handleClient(); 
+  server.handleClient();
  if (rainbowst)
   digitalWrite(D7, HIGH);
  else 
@@ -117,6 +153,10 @@ void handle_OnConnect() {
   LEDstatus = LOW;
   LEDstatus1 = HIGH;
   server.send(200, "text/html", SendHTML(false));
+}
+void handle_rainbowselect(){
+  colorsrainbow();
+  server.send(200, "text/html", SendHTML(rainbowslc));
 }
 void handle_rainbowon(){
   rainbow();
@@ -144,111 +184,120 @@ void handle_NotFound() {
 String SendHTML(uint8_t led) {
   const char css[] = R"=====(
 <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Web Server - Esp8266</title>
-        <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: sans-serif;
-        }
-        header {
-            background-color: #333;
-            color: #fff;
-            padding: 10px;
-            text-align: center;
-        }
-        section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 30px;
-        }
-        .item-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 50%;
-            margin-bottom: 10px;
-            padding: 5px;
-            background-color: #ddd;
-        }
-        .titulo {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .estado {
-            padding: 5px;
-            border-radius: 5px;
-            text-transform: uppercase;
-            font-size: 14px;
-        }
-        .on {
-            background-color: green;
-            color: #fff;
-        }
-        .off {
-            background-color: red;
-            color: #fff;
-        }
-        .acoes {
-            display: flex;
-            justify-content: space-between;
-            width: 50%;
-        }
-        .ligar, .desligar {
-            width: 40%;
-            height: 40px;
-            background-color: gray;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-decoration: none;
-            font-size: 15px;
-            text-transform: uppercase;
-            color: black;
-            transition: all 0.4s;
-        }
-        .ligar:hover {
-            background-color: green;
-        }
-        .desligar:hover {
-            background-color: red;
-        }
-        </style>
-      </head>
-      <body>
-      <header>
-        <h1>Web Server - Esp8266</h1>   
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Web Server - Esp8266</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 100vh;
+      }
+      header {
+        background-color:   black;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+      }
+      section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+      }
+      .item-head {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 50%;
+        margin-bottom: 10px;
+        padding: 5px;
+        background-color: #ddd;
+      }
+      .titulo {
+        font-size: 20px;
+        font-weight: 100;
+        text-align: center;
+      }
+      .estado {
+        padding: 5px;
+        border-radius: 5px;
+        text-transform: uppercase;
+        font-size: 14px;
+      }
+      .on {
+        background-color: green;
+        color: #fff;
+      }
+      .off {
+        background-color: red;
+        color: #fff;
+      }
+      .acoes {
+        display: flex;
+        justify-content: space-between;
+        width: 50%;
+      }
+      .ligar, .desligar {
+        width: 25%;
+        height: 50px;
+        background-color: gray;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-decoration: none;
+        font-size: 15px;
+        text-transform: uppercase;
+        color: black;
+        transition: all 0.5s;
+      }
+      .ligar:hover {
+        background-color: green;
+      }
+      .desligar:hover {
+        background-color: red;
+      }
+      footer {
+        background-color: black;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+        margin-top: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Web Server - Esp8266</h1>   
     </header>
     <section>
-        <div class="item-head">
-            <div class="titulo">Controle de Led Azul
-            e Led Builtin</div>
-        </div>
-        <div class="acoes">
-          <a href="/ledon" class="ligar">Ligar</a>
-          <a href="/ledoff" class="desligar">Desligar</a>
-        </div>
-        <div class="item-head">
-            <div class="titulo">Rainbow</div>
-        </div>
-        <div class="acoes">
-          <a href="/rainbowon" class="ligar">Ligar</a>
-          <a href="/rainbowoff" class="desligar">Desligar</a>
-        </div>
+      <div class="item-head">
+        <div class="titulo">Led Azul e Led Builtin</div>
+      </div>
+      <div class="acoes">
+        <a href="/ledon" class="ligar">Ligar</a>
+        <a href="/ledoff" class="desligar">Desligar</a>
+      </div>
+      <div class="item-head">
+        <div class="titulo">Rainbow</div>
+      </div>
+      <div class="acoes">
+        <a href="/rainbowon" class="ligar">Ligar</a>
+        <a href="/rainbowselect" class="ligar">Fixo</a>
+        <a href="/rainbowoff" class="desligar">Desligar</a>
+      </div>
     </section>
-    <footer>
-        Feito por João!
-    </footer>
-      </body>
-    </html>
+  </body>
+</html>
   )=====";
   const char rodape[] = R"=====(
     <footer>
-      <p>Esp8266 - WebServer.</p>
+      <p>Feito por João!</p>
     </footer>
   )=====";
   return String(css) + String(rodape); 

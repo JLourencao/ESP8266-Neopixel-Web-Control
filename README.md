@@ -11,12 +11,13 @@ O ESP8266 atua como um servidor web, permitindo o acesso a uma página HTML atra
 ## Componentes Utilizados
 
 - ESP8266 (NodeMCU)
+  
 ![image](https://github.com/JLourencao/ESP8266-Neopixel-Web-Control/assets/113789779/d1c718dd-375c-4742-8480-95aee4accd43)
 
 - LEDs Neopixel
+  
 ![image](https://github.com/JLourencao/ESP8266-Neopixel-Web-Control/assets/113789779/f400c9dc-2aca-412a-b5a2-abf57964de86)
 
-  
 - Biblioteca Adafruit Neopixel
 
 ## Configuração da Rede Wi-Fi

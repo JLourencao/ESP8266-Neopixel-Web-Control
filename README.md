@@ -1,5 +1,4 @@
 # ESP8266-Neopixel-Web-Control
-Acendendo Leds via Wifi
 Este projeto consiste em uma página web hospedada em um ESP8266 que controla LEDs Neopixel. Ele permite ligar e desligar LEDs individualmente, bem como exibir um efeito de arco-íris nos LEDs.
 
 ## Como Funciona
